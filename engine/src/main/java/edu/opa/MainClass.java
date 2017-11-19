@@ -4,46 +4,82 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+
+import edu.opa.xml.XMLStructure;
 
 public class MainClass {
 
 	public static void main(String[] args)
 	{
-		String server = "localhost";
-		int port = 2223;
-		String user = "luk";
-		String pass = "luk";
 		
-		FTPClient ftpClient = new FTPClient();
-		try {
-			 
-            ftpClient.connect(server, port);
-            ftpClient.login(user, pass);
-            ftpClient.enterLocalPassiveMode();
- 
-            ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
- 
-            // APPROACH #1: uploads first file using an InputStream
-            File firstLocalFile = new File("D:/Goals.jpg");
- 
-            String firstRemoteFile = "Goals_copy.jpg";
-            InputStream inputStream = new FileInputStream(firstLocalFile);
- 
-            System.out.println("Start uploading first file");
-            boolean done = ftpClient.storeFile(firstRemoteFile, inputStream);
-            inputStream.close();
-            if (done) {
-                System.out.println("The first file is uploaded successfully.");
-            }
-            else 
-            	System.out.println("Fail");
- 
-//            // APPROACH #2: uploads second file using an OutputStream
-//            File secondLocalFile = new File("E:/Test/Report.doc");
-//            String secondRemoteFile = "test/Report.doc";
+		XMLStructure xmlStructure = XMLStructure.getInstance();
+		System.out.println(xmlStructure.getDocument().asXML());
+		
+		URI uri1;
+		URI uri2;
+		URI uri3;
+		try
+		{
+			uri1 = MainClass.class.getResource("/testFolder/testFile.txt").toURI();
+			uri2 = MainClass.class.getResource("/testFolder/secondTestFile.txt").toURI();
+			uri3 = MainClass.class.getResource("/testFolder/thirdTestFile.txt").toURI();
+			File file = new File(uri1);
+			File file3 = new File(uri3);
+			List<File> files = new ArrayList<>();
+			files.add(new File(uri1));
+			files.add(new File(uri2));
+			xmlStructure.addFilesToXmlStructure(files);
+			xmlStructure.getDocument().normalize();
+			System.out.println(xmlStructure.getDocument().asXML());
+			xmlStructure.addFileToXmlStructure(file);
+			System.out.println(xmlStructure.getDocument().asXML());
+			xmlStructure.save();
+		} catch (URISyntaxException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+}
+//		String server = "localhost";
+//		int port = 2223;
+//		String user = "luk";
+//		String pass = "luk";
+//		
+//		FTPClient ftpClient = new FTPClient();
+//		try {
+//			 
+//            ftpClient.connect(server, port);
+//            ftpClient.login(user, pass);
+//            ftpClient.enterLocalPassiveMode();
+// 
+//            ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+// 
+//            // APPROACH #1: uploads first file using an InputStream
+//            File firstLocalFile = new File("D:/Goals.jpg");
+// 
+//            String firstRemoteFile = "Goals_copy.jpg";
+//            InputStream inputStream = new FileInputStream(firstLocalFile);
+// 
+//            System.out.println("Start uploading first file");
+//            boolean done = ftpClient.storeFile(firstRemoteFile, inputStream);
+//            inputStream.close();
+//            if (done) {
+//                System.out.println("The first file is uploaded successfully.");
+//            }
+//            else 
+//            	System.out.println("Fail");
+// 
+          //  ftpClient.list
+//            // APPROACH #2: uploads second file using an OutputStreamp
 //            inputStream = new FileInputStream(secondLocalFile);
 // 
 //            System.out.println("Start uploading second file");
@@ -61,20 +97,19 @@ public class MainClass {
 //            if (completed) {
 //                System.out.println("The second file is uploaded successfully.");
 //            }
- 
-        } catch (IOException ex) {
-            System.out.println("Error: " + ex.getMessage());
-            ex.printStackTrace();
-        } finally {
-            try {
-                if (ftpClient.isConnected()) {
-                    ftpClient.logout();
-                    ftpClient.disconnect();
-                }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        }
-	}
+// 
+//        } catch (IOException ex) {
+//            System.out.println("Error: " + ex.getMessage());
+//            ex.printStackTrace();
+//        } finally {
+//            try {
+//                if (ftpClient.isConnected()) {
+//                    ftpClient.logout();
+//                    ftpClient.disconnect();
+//                }
+//            } catch (IOException ex) {
+//                ex.printStackTrace();
+//            }
+//        }
+//	}
 
-}
