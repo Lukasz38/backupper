@@ -22,6 +22,8 @@ import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
 
+import edu.opa.FileDTO;
+
 public class XMLStructure implements XMLStructureCreator {
 
 	private static final String XML_FILE_RESOURCE_PATH = "/data/document.xml";
@@ -115,7 +117,7 @@ public class XMLStructure implements XMLStructureCreator {
 		}
 	}
 	
-	public List<File> listFiles()
+	public List<File> listFilesToArchive()
 	{
 		List<File> files = new ArrayList<>();
 		List<Node> nodes = document.getRootElement().selectNodes(FILE_NODE);
@@ -126,6 +128,21 @@ public class XMLStructure implements XMLStructureCreator {
 			files.add(file);
 		}
 		return files;
+	}
+	
+	public List<FileDTO> listArchivedFiles()
+	{
+		List<FileDTO> files = new ArrayList<>();
+		List<Node> nodes = document.getRootElement().selectNodes(FILE_NODE + "//" + DATE_TIME_NODE);
+		for(Node node : nodes) {
+			Element element = (Element) node.getParent();
+			String localPath = element.element(LOCAL_PATH_NODE).getText();
+			LocalDateTime backupDate = LocalDateTime.parse(element.element(DATE_TIME_NODE).getText());
+			String remotePath = element.element(REMOTE_PATH_NODE).getText();
+			FileDTO fileDTO = new FileDTO(localPath, backupDate, remotePath);
+			files.add(fileDTO);
+		}
+		return files;	
 	}
 
 	@Override

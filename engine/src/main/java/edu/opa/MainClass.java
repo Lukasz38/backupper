@@ -19,36 +19,7 @@ public class MainClass {
 	public static void main(String[] args)
 	{
 		
-		XMLStructure xmlStructure = XMLStructure.getInstance();
-		System.out.println(xmlStructure.getDocument().asXML());
-		
-		URI uri1;
-		URI uri2;
-		URI uri3;
-		try
-		{
-			uri1 = MainClass.class.getResource("/testFolder/testFile.txt").toURI();
-			uri2 = MainClass.class.getResource("/testFolder/secondTestFile.txt").toURI();
-			uri3 = MainClass.class.getResource("/testFolder/thirdTestFile.txt").toURI();
-			File file = new File(uri1);
-			File file3 = new File(uri3);
-			List<File> files = new ArrayList<>();
-			files.add(new File(uri1));
-			files.add(new File(uri2));
-			xmlStructure.addFilesToXmlStructure(files);
-			xmlStructure.getDocument().normalize();
-			System.out.println(xmlStructure.getDocument().asXML());
-			xmlStructure.addFileToXmlStructure(file);
-			System.out.println(xmlStructure.getDocument().asXML());
-			xmlStructure.save();
-		} catch (URISyntaxException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
-}
+	
 //		String server = "localhost";
 //		int port = 2223;
 //		String user = "luk";
@@ -112,4 +83,6 @@ public class MainClass {
 //            }
 //        }
 //	}
-
+	}
+}
+		

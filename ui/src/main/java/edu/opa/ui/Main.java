@@ -13,7 +13,7 @@ public class Main extends Application {
 	
 		try {
 			FXMLLoader loader = new FXMLLoader();
-			loader.setLocation(this.getClass().getResource("/fxml/SplitPaneWindow.fxml"));
+			loader.setLocation(this.getClass().getResource("/fxml/MainScene.fxml"));
 			SplitPane splitPane = loader.load();
 		
 			Scene scene = new Scene(splitPane);
