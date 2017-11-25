@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,7 +27,8 @@ import edu.opa.FileDTO;
 
 public class XMLStructure implements XMLStructureCreator {
 
-	private static final String XML_FILE_RESOURCE_PATH = "/data/document.xml";
+	private static final String XML_FOLDER_NAME = "data";
+	private static final String XML_FILE_NAME = "document.xml";
 	
 	public static final String ROOT_NODE = "backup";
 	public static final String FILE_NODE = "file";
@@ -58,25 +60,55 @@ public class XMLStructure implements XMLStructureCreator {
 		return instance;
 	}
 	
-	private boolean loadFile()
+	private boolean createFolder()
 	{
 		try {
-			URI uri = this.getClass().getResource(XML_FILE_RESOURCE_PATH).toURI();
-			if(uri != null) {
-				xmlFile = new File(uri);
-				if(!xmlFile.exists()) {
-					xmlFile.createNewFile();
-					document = DocumentHelper.createDocument();
-					document.addElement(ROOT_NODE);
-					save();
+			URL url = this.getClass().getResource("/");
+			if(url != null) {
+				URI uri = new URI(url.toString() + XML_FOLDER_NAME);
+				File folder = new File(uri);
+				if(!folder.exists()) {
+					folder.mkdir();
 				}
 				return true;
 			} 
 			else 
-				throw new URIReferenceException("Invalid URI.");
-		} catch (URIReferenceException | URISyntaxException | IOException e) {
+				throw new URIReferenceException("Couldn't find resource.");
+		} catch (URIReferenceException | URISyntaxException e) {
 			e.printStackTrace();
 			return false;
+		}
+	}
+	
+	private boolean loadFile()
+	{
+		boolean folderCreated = createFolder();
+		if(folderCreated) {
+			try {
+				URL url = this.getClass().getResource("/" + XML_FOLDER_NAME);
+				if(url != null) {
+					URI uri = new URI(url + "/" + XML_FILE_NAME);
+					xmlFile = new File(uri);
+					if(!xmlFile.exists()) {
+						xmlFile.createNewFile();
+						document = DocumentHelper.createDocument();
+						document.addElement(ROOT_NODE);
+						document.normalize();
+						save();
+					}
+					return true;
+				}
+				else {
+					throw new URIReferenceException("Invalid URI.");
+				}
+			}
+			catch (URIReferenceException | URISyntaxException | IOException e) {
+				e.printStackTrace();
+				return false;
+			}
+		}
+		else {
+			throw new RuntimeException("Couldn't create folder.");
 		}
 	}
 	
@@ -87,6 +119,7 @@ public class XMLStructure implements XMLStructureCreator {
 				SAXReader reader = new SAXReader();
 				if(xmlFile.exists()) {
 						document = reader.read(xmlFile);
+						document.normalize();
 						return true;
 				}
 				else {
@@ -232,27 +265,35 @@ public class XMLStructure implements XMLStructureCreator {
 	}
 
 	@Override
-	public void updateHash(int hash, Element element) throws IllegalArgumentException
+	public void updateHash(String hash, Element element) throws IllegalArgumentException
 	{
 		if(element.getName().equals(HASH_NODE)) {
-			element.setText(Integer.toString(hash));
+			element.setText(hash);
 		}
 		else if(element.getName().equals(FILE_NODE)) {
 			Element hashElement = element.element(HASH_NODE);
-			hashElement.setText(Integer.toString(hash));
+			hashElement.setText(hash);
 		}
 		else {
 			throw new IllegalArgumentException("Illegal Element object. Must either \"" + FILE_NODE
 					+ "\" or \"" + HASH_NODE + "\"");
 		}
-		
 	}
 
 	@Override
 	public void updateBackupDate(LocalDateTime localDateTime, Element element) throws IllegalArgumentException
 	{
-		// TODO Auto-generated method stub
-		
+		if(element.getName().equals(DATE_TIME_NODE)) {
+			element.setText(localDateTime.toString());
+		}
+		else if(element.getName().equals(FILE_NODE)) {
+			Element dateTimeElement = element.element(HASH_NODE);
+			dateTimeElement.setText(localDateTime.toString());
+		}
+		else {
+			throw new IllegalArgumentException("Illegal Element object. Must either \"" + FILE_NODE
+					+ "\" or \"" + HASH_NODE + "\"");
+		}
 	}
 
 	@Override
@@ -265,6 +306,28 @@ public class XMLStructure implements XMLStructureCreator {
 	public Document getDocument()
 	{
 		return document;
+	}
+	
+	public Optional<String> getHash(File file)
+	{
+		Element element = document.getRootElement().element(FILE_NODE + "[/localPath ='" + file.getAbsolutePath() + "']");  
+		Element hashElement = element.element(HASH_NODE);
+		if(hashElement.getText().isEmpty() || hashElement == null) {
+			return Optional.empty();
+		}
+		else {
+			return Optional.of(hashElement.getText());
+		}
+	}
+	
+	public Optional<String> getRemotePath(File file) 
+	{
+		return Optional.empty();
+	}
+	
+	public Optional<LocalDateTime> getLastUpdateTime(File file)
+	{
+		return Optional.empty();
 	}
 	
 //	@Override

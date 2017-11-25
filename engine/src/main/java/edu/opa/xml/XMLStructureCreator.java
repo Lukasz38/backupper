@@ -15,7 +15,7 @@ public interface XMLStructureCreator {
 	public void addBackupDateToElement(LocalDateTime localDateTime, Element element) throws IllegalArgumentException;
 	public void addRemotePathToElement(String path, Element element) throws IllegalArgumentException;
 	
-	public void updateHash(int hash, Element element) throws IllegalArgumentException;
+	public void updateHash(String hash, Element element) throws IllegalArgumentException;
 	public void updateBackupDate(LocalDateTime localDateTime, Element element) throws IllegalArgumentException;
 
 	public boolean deleteFileElement(String localPath);
