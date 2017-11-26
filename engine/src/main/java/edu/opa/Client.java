@@ -2,8 +2,11 @@ package edu.opa;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Properties;
@@ -12,6 +15,10 @@ import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 
 public class Client {
 
@@ -25,6 +32,36 @@ public class Client {
 	private int port;
 	private String user;
 	private String password;
+	
+	
+	public boolean restoreFiles(String path) {
+		Stage stage = new Stage();
+		stage.setTitle("Select directory to restore file");
+		DirectoryChooser dirChooser = new DirectoryChooser();
+		File directory =  dirChooser.showDialog(stage);
+		String fileDirectory = directory.getAbsolutePath() + "/" + path;
+		OutputStream output = null;
+		try {
+			output = new FileOutputStream (directory);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}				
+		try {
+			boolean sent  = ftpClient.retrieveFile(path, output);
+			if(sent) {
+			return true;
+			} else {
+				return false;
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false; //tu nie wiem czemu mnie zmusza mimo, ze mam w try {return}
+
+	}
+	
 	
 	public static Client getInstance()
 	{

@@ -21,10 +21,12 @@ import edu.opa.Hasher;
 import edu.opa.ObservableData;
 import edu.opa.xml.XMLStructure;
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
@@ -68,6 +70,7 @@ public class MainController {
     	tableView.getColumns().get(2).setCellValueFactory(
 				new PropertyValueFactory<>("backupDate"));
     	tableView.setItems(ObservableData.getInstance().getObservableList());
+    	tableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
     }
 
 	@FXML
@@ -79,7 +82,51 @@ public class MainController {
 	@FXML
 	public void restoreFilesOnAction()
 	{
-		//TODO
+		boolean sthRestored = false;
+		try {
+			if(!client.isConnected()) {
+				client.connect();
+			}
+			Client client = Client.getInstance();
+			ObservableList<FileDTO> remoteFilePaths = tableView.getSelectionModel().getSelectedItems();
+			for(FileDTO singleFile : remoteFilePaths) {
+				String singlePath = singleFile.getRemotePath();
+				boolean sent = client.restoreFiles(singlePath);
+			
+				if(sent) {
+					sthRestored = true;
+				}
+			}
+			Runnable runnable;
+			if(sthRestored) {
+				runnable = () -> {
+					String message = "Successful archiving.";
+					showAlert(message, AlertType.INFORMATION);
+				};
+			}
+			else {
+				runnable = () -> {
+					String message = "Nothing to archive. Everything is up to date.";
+					showAlert(message, AlertType.INFORMATION);
+				};
+			};
+			Platform.runLater(runnable);
+		} catch (IOException e) {
+			Platform.runLater(() -> {
+				String message = e.getMessage() + " Restoring aborted. "
+						+ "Please, check your network connection.";
+				showAlert(message, AlertType.WARNING);
+			});
+		} finally {
+			try {
+				ObservableData.getInstance().update();
+				client.disconnect();
+			} catch (IOException e) {
+				log.error("Exception while disconnecting client.\n"
+						+ "Exception message: {}", e);
+			}
+		}
+	
 	}
 	
 	@FXML
