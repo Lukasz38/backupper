@@ -78,6 +78,11 @@ public class Client {
 	    log.info("Client connected.");
 	}
 	
+	public boolean isConnected()
+	{
+		return ftpClient.isConnected();
+	}
+	
 	public void disconnect() throws IOException
 	{
 		ftpClient.disconnect();
