@@ -177,6 +177,30 @@ public class XMLStructure implements XMLStructureCreator {
 		}
 		return files;	
 	}
+	
+	public List<FileDTO> listFiles()
+	{
+		List<FileDTO> files = new ArrayList<>();
+		List<Node> nodes = document.getRootElement().selectNodes(FILE_NODE);
+		for(Node node : nodes) {
+			Element element = (Element) node;
+			String localPath = element.element(LOCAL_PATH_NODE).getText();
+			Element dateTimeElement = element.element(DATE_TIME_NODE);
+			LocalDateTime backupDate = null;
+			if(dateTimeElement != null) {
+				backupDate = LocalDateTime.parse(dateTimeElement.getText());
+			}
+			Element remotePathElement = element.element(REMOTE_PATH_NODE);
+		
+			String remotePath = "";
+			if(remotePathElement != null) {
+				remotePath = remotePathElement.getText();
+			}
+			FileDTO fileDTO = new FileDTO(localPath, backupDate, remotePath);
+			files.add(fileDTO);
+		}
+		return files;	
+	}
 
 	@Override
 	public void addFilesToXmlStructure(List<File> files) throws IllegalArgumentException

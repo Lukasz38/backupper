@@ -12,7 +12,7 @@ public class ObservableData {
 	private ObservableData()
 	{
 		observableList = FXCollections.observableArrayList();
-		observableList.addAll(XMLStructure.getInstance().listArchivedFiles());
+		observableList.addAll(XMLStructure.getInstance().listFiles());
 	}
 
 	public static ObservableData getInstance()
