@@ -11,7 +11,7 @@ public class Hasher {
 
 	public static Optional<String> getHashForFile(File file) throws IllegalArgumentException
 	{
-		if(!file.isDirectory()) {
+		if(file.isDirectory()) {
 			throw new IllegalArgumentException("Given File object cannot be a directory");
 		}
 		MessageDigest digest;

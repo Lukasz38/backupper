@@ -207,7 +207,7 @@ public class XMLStructure implements XMLStructureCreator {
 		return element;
 	}
 	
-	private Optional<Element> fileElementExists(File file) throws IllegalArgumentException
+	public Optional<Element> fileElementExists(File file) throws IllegalArgumentException
 	{
 		List<Node> nodes = document.getRootElement().selectNodes(FILE_NODE + "//" + LOCAL_PATH_NODE);
 		Iterator<Node> iterator = nodes.iterator();
@@ -232,13 +232,13 @@ public class XMLStructure implements XMLStructureCreator {
 	}
 
 	@Override
-	public void addHashToElement(int hash, Element element) throws IllegalArgumentException
+	public void addHashToElement(String hash, Element element) throws IllegalArgumentException
 	{
 		if(!element.getName().equals(FILE_NODE)) {
 			throw new IllegalArgumentException("Given Element object must be a \"file\" node.");
 		}
 		Element hashElement = DocumentHelper.createElement(HASH_NODE);
-		hashElement.setText(Integer.toString(hash));
+		hashElement.setText(hash);
 		element.add(hashElement);
 	}
 
@@ -272,7 +272,13 @@ public class XMLStructure implements XMLStructureCreator {
 		}
 		else if(element.getName().equals(FILE_NODE)) {
 			Element hashElement = element.element(HASH_NODE);
-			hashElement.setText(hash);
+			if(hashElement == null) {
+				addHashToElement(hash, element);
+			}
+			else {
+				hashElement.setText(hash);
+			}
+			
 		}
 		else {
 			throw new IllegalArgumentException("Illegal Element object. Must either \"" + FILE_NODE
@@ -287,8 +293,13 @@ public class XMLStructure implements XMLStructureCreator {
 			element.setText(localDateTime.toString());
 		}
 		else if(element.getName().equals(FILE_NODE)) {
-			Element dateTimeElement = element.element(HASH_NODE);
-			dateTimeElement.setText(localDateTime.toString());
+			Element dateTimeElement = element.element(DATE_TIME_NODE);
+			if(dateTimeElement == null) {
+				addBackupDateToElement(localDateTime, element);
+			}
+			else {
+				dateTimeElement.setText(localDateTime.toString());
+			}
 		}
 		else {
 			throw new IllegalArgumentException("Illegal Element object. Must either \"" + FILE_NODE
@@ -314,7 +325,10 @@ public class XMLStructure implements XMLStructureCreator {
 		List<Node> nodes = document.getRootElement().selectNodes(xpath);
 		Element fileElement = (Element) nodes.get(0);
 		Element hashElement = fileElement.element(HASH_NODE);
-		if(hashElement.getText().isEmpty() || hashElement == null) {
+		if(hashElement == null) {
+			return Optional.empty();
+		}
+		if(hashElement.getText().isEmpty()) {
 			return Optional.empty();
 		}
 		else {

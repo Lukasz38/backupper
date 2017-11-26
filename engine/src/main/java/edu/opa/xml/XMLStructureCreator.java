@@ -11,7 +11,7 @@ public interface XMLStructureCreator {
 	public void addFilesToXmlStructure(List<File> files) throws IllegalArgumentException;
 	public Element addFileToXmlStructure(File file) throws IllegalArgumentException;
 	public void addLocalPathToElement(String path, Element element) throws IllegalArgumentException;
-	public void addHashToElement(int hash, Element element) throws IllegalArgumentException;
+	public void addHashToElement(String hash, Element element) throws IllegalArgumentException;
 	public void addBackupDateToElement(LocalDateTime localDateTime, Element element) throws IllegalArgumentException;
 	public void addRemotePathToElement(String path, Element element) throws IllegalArgumentException;
 	
