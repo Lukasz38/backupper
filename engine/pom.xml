@@ -16,5 +16,9 @@
 		    <groupId>org.dom4j</groupId>
 		    <artifactId>dom4j</artifactId>
 	</dependency>
+	<dependency>
+		    <groupId>ch.qos.logback</groupId>
+		    <artifactId>logback-classic</artifactId>
+	</dependency>
   </dependencies>
 </project>
