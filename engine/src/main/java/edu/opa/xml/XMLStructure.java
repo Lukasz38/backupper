@@ -310,8 +310,10 @@ public class XMLStructure implements XMLStructureCreator {
 	
 	public Optional<String> getHash(File file)
 	{
-		Element element = document.getRootElement().element(FILE_NODE + "[/localPath ='" + file.getAbsolutePath() + "']");  
-		Element hashElement = element.element(HASH_NODE);
+		String xpath = FILE_NODE + "[localPath='" + file.getAbsolutePath() + "']";
+		List<Node> nodes = document.getRootElement().selectNodes(xpath);
+		Element fileElement = (Element) nodes.get(0);
+		Element hashElement = fileElement.element(HASH_NODE);
 		if(hashElement.getText().isEmpty() || hashElement == null) {
 			return Optional.empty();
 		}
@@ -322,12 +324,30 @@ public class XMLStructure implements XMLStructureCreator {
 	
 	public Optional<String> getRemotePath(File file) 
 	{
-		return Optional.empty();
+		String xpath = FILE_NODE + "[localPath='" + file.getAbsolutePath() + "']";
+		List<Node> nodes = document.getRootElement().selectNodes(xpath);
+		Element fileElement = (Element) nodes.get(0);
+		Element remotePathElement = fileElement.element(REMOTE_PATH_NODE);
+		if(remotePathElement.getText().isEmpty() || remotePathElement == null) {
+			return Optional.empty();
+		}
+		else {
+			return Optional.of(remotePathElement.getText());
+		}
 	}
 	
 	public Optional<LocalDateTime> getLastUpdateTime(File file)
 	{
-		return Optional.empty();
+		String xpath = FILE_NODE + "[localPath='" + file.getAbsolutePath() + "']";
+		List<Node> nodes = document.getRootElement().selectNodes(xpath);
+		Element fileElement = (Element) nodes.get(0);
+		Element dateElement = fileElement.element(DATE_TIME_NODE);
+		if(dateElement.getText().isEmpty() || dateElement == null) {
+			return Optional.empty();
+		}
+		else {
+			return Optional.of(LocalDateTime.parse(dateElement.getText()));
+		}
 	}
 	
 //	@Override

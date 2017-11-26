@@ -18,7 +18,7 @@ public class MainClass {
 
 	public static void main(String[] args)
 	{
-		XMLStructure.getInstance().getHash(new File("D://Goals.jpg"));
+		//XMLStructure.getInstance().getHash(new File("D://Goals.jpg"));
 	
 //		String server = "localhost";
 //		int port = 2223;

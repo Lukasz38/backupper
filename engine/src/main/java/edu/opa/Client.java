@@ -8,7 +8,7 @@ import java.io.InputStream;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 
-public class Sender {
+public class Client {
 
 	private FTPClient ftpClient;
 	private String server;
@@ -16,7 +16,7 @@ public class Sender {
 	private String user;
 	private String password;
 	
-	public Sender(String server, int port, String user, String password)
+	public Client(String server, int port, String user, String password)
 	{
 		ftpClient = new FTPClient();
 //		String server = "localhost";
