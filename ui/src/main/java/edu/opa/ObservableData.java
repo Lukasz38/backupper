@@ -1,7 +1,5 @@
 package edu.opa;
 
-import java.io.File;
-
 import edu.opa.xml.XMLStructure;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -9,15 +7,12 @@ import javafx.collections.ObservableList;
 public class ObservableData {
 
 	private static ObservableData instance = new ObservableData();
-	private ObservableList<File> observableFilesToArchive;
-	private ObservableList<FileDTO> observableArchivedFiles;
+	private ObservableList<FileDTO> observableList;
 	
 	private ObservableData()
 	{
-		observableFilesToArchive = FXCollections.observableArrayList();
-		observableFilesToArchive.addAll(XMLStructure.getInstance().listFilesToArchive());
-		observableArchivedFiles = FXCollections.observableArrayList();
-		observableArchivedFiles.addAll(XMLStructure.getInstance().listArchivedFiles());
+		observableList = FXCollections.observableArrayList();
+		observableList.addAll(XMLStructure.getInstance().listArchivedFiles());
 	}
 
 	public static ObservableData getInstance()
@@ -25,13 +20,8 @@ public class ObservableData {
 		return instance;
 	}
 
-	public ObservableList<File> getObservableFilesToArchive()
+	public ObservableList<FileDTO> getObservableList()
 	{
-		return observableFilesToArchive;
-	}
-
-	public ObservableList<FileDTO> getObservableArchivedFiles()
-	{
-		return observableArchivedFiles;
+		return observableList;
 	}
 }

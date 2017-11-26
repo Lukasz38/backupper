@@ -18,11 +18,11 @@
       </ToolBar>
    </top>
    <center>
-      <TableView editable="true" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+      <TableView fx:id="tableView" editable="true" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
         <columns>
-          <TableColumn prefWidth="75.0" text="Local file" />
-          <TableColumn prefWidth="75.0" text="Remote file" />
-            <TableColumn prefWidth="75.0" text="Last backup" />
+          <TableColumn fx:id="localFileColumn" prefWidth="75.0" text="Local file" />
+          <TableColumn fx:id="remoteFileColumn" prefWidth="75.0" text="Remote file" />
+            <TableColumn fx:id="lastBackupColumn" prefWidth="75.0" text="Last backup" />
         </columns>
          <columnResizePolicy>
             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
