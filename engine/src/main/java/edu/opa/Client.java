@@ -71,11 +71,15 @@ public class Client {
 	
 	public void connect() throws IOException
 	{
-		ftpClient.connect(server, port);
-		ftpClient.login(user, password);
-	    ftpClient.enterLocalPassiveMode();
-	    ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
-	    log.info("Client connected.");
+		try {
+			ftpClient.connect(server, port);
+			ftpClient.login(user, password);
+			ftpClient.enterLocalPassiveMode();
+			ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+			log.info("Client connected.");
+		} catch (Exception e) {
+			throw new IOException("Couldn't establish connection.");
+		}
 	}
 	
 	public boolean isConnected()
@@ -89,7 +93,8 @@ public class Client {
 		log.info("Client disconnected.");
 	}
 	
-	public boolean sendFile(File file, String remoteFilename) throws IllegalArgumentException
+	public boolean sendFile(File file, String remoteFilename) 
+			throws IllegalArgumentException, IOException
 	{
 		if(file.isDirectory()) {
 			throw new IllegalArgumentException("Given \"File\" object is a directory, "
@@ -114,7 +119,7 @@ public class Client {
 		} catch (IOException e) {
 			log.error("Exception while trying to send the file: " + file.getAbsolutePath() + ".\n"
 					+ "Exception message: {}", e);
-			return false;
+			throw new IOException("An error occured while archiving a file.");
 		}
 	}
 }
