@@ -6,6 +6,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.dom4j.Element;
 import org.slf4j.Logger;
@@ -16,7 +20,10 @@ import edu.opa.FileDTO;
 import edu.opa.Hasher;
 import edu.opa.ObservableData;
 import edu.opa.xml.XMLStructure;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -43,10 +50,12 @@ public class MainController {
     private TableView<FileDTO> tableView;
     
     private XMLStructure xmlStructure;
+    private Client client;
     
     public MainController()
     {
     	xmlStructure = XMLStructure.getInstance();
+    	client = Client.getInstance();
     }
     
     @FXML
@@ -64,7 +73,7 @@ public class MainController {
 	@FXML
 	public void archiveFilesOnAction()
 	{
-		archiveFiles();
+		archiveInTheBackgroud();
 	}
 	
 	@FXML
@@ -76,7 +85,12 @@ public class MainController {
 	@FXML
 	public void scheduleBackupOnAction()
 	{
-		//TODO
+		Runnable runnable = () -> {
+			archiveFiles();
+		};
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1); 
+        scheduler.scheduleAtFixedRate(runnable, 10, 60, TimeUnit.SECONDS);
+        log.info("Archived at fixed rate");
 	}
 	
 	@FXML
@@ -93,14 +107,12 @@ public class MainController {
 		xmlStructure.addFilesToXmlStructure(files);
 		xmlStructure.save();
 		
-		List<FileDTO> fileDTOs = xmlStructure.listFiles();
-		ObservableData.getInstance().getObservableList().clear();
-		ObservableData.getInstance().getObservableList().addAll(fileDTOs);
+		ObservableData.getInstance().update();
 	}
 	
 	private void archiveFiles()
 	{
-		Client client = Client.getInstance();
+		boolean sthArchived = false;
 		try {
 			if(!client.isConnected()) {
 				client.connect();
@@ -112,26 +124,53 @@ public class MainController {
 					continue;
 				}
 				if(isHashChanged(file)) {
-					client.sendFile(file, file.getName());
-					Optional<Element> optElem = xmlStructure.fileElementExists(file);
-					if(!optElem.isPresent()) {
-						throw new UnknownError();
+					boolean sent = client.sendFile(file, file.getName());
+					if(sent) {
+						sthArchived = true;
+						Optional<Element> optElem = xmlStructure.fileElementExists(file);
+						if(!optElem.isPresent()) {
+							throw new UnknownError();
+						}
+						Element fileElement = optElem.get();
+						xmlStructure.updateHash(Hasher.getHashForFile(file).get(), fileElement);	
+						xmlStructure.updateBackupDate(LocalDateTime.now(), fileElement);
+						xmlStructure.addRemotePathToElement(file.getName(), fileElement);
+						xmlStructure.save();
+						ObservableData.getInstance().update();
 					}
-					Element fileElement = optElem.get();
-					xmlStructure.updateHash(Hasher.getHashForFile(file).get(), fileElement);	
-					xmlStructure.updateBackupDate(LocalDateTime.now(), fileElement);
-					xmlStructure.addRemotePathToElement(file.getName(), fileElement);
-					xmlStructure.save();
 				}
 				else {
 					continue;
 				}
 			}
-			client.disconnect();
-		} catch (IOException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Runnable runnable;
+			if(sthArchived) {
+				runnable = () -> {
+					String message = "Successful archiving.";
+					showAlert(message, AlertType.INFORMATION);
+				};
+			}
+			else {
+				runnable = () -> {
+					String message = "Nothing to archive. Everything is up to date.";
+					showAlert(message, AlertType.INFORMATION);
+				};
+			};
+			Platform.runLater(runnable);
+		} catch (IOException e) {
+			Platform.runLater(() -> {
+				String message = e.getMessage() + " Archiving aborted. "
+						+ "Please, check your network connection.";
+				showAlert(message, AlertType.WARNING);
+			});
+		} finally {
+			try {
+				ObservableData.getInstance().update();
+				client.disconnect();
+			} catch (IOException e) {
+				log.error("Exception while disconnecting client.\n"
+						+ "Exception message: {}", e);
+			}
 		}
 	}
 		
@@ -147,9 +186,7 @@ public class MainController {
 		}
 		else {
 			String currentHash = optCurrentHash.get();
-			System.out.println("Current hash: " + currentHash);
 			String previousHash = optPreviousHash.get();
-			System.out.println("Previous hash: " + previousHash);
 			if(currentHash.equals(previousHash)) {
 				return false;
 			}
@@ -157,5 +194,43 @@ public class MainController {
 				return true;
 			}
 		}
+	}
+	
+	private void showAlert(String message, AlertType alertType)
+	{
+		Alert alert = new Alert(alertType);
+		alert.setHeaderText(null);
+		alert.setContentText(message);
+		alert.showAndWait();
+	}
+	
+	private Thread getThreadByName(String threadName) {
+		Set<Thread> threads = Thread.getAllStackTraces().keySet();
+	    for (Thread t : threads) {
+	        if (t.getName().equals(threadName)) {
+	        	return t;
+	        }
+	    }
+	    return null;
+	}
+	
+	private void archiveInTheBackgroud()
+	{
+		Thread thread = getThreadByName("archive");
+		if(thread == null) {
+			log.debug("\"archive\" thread is null.");
+			thread = new Thread(() -> {
+				archiveFiles();
+			});
+		}
+		if(thread.isAlive()) {
+			log.debug("\"archive\" thread is alive.");
+			showAlert("Archiving already started.", AlertType.INFORMATION);
+			return;
+		}
+		else {
+			thread.setName("archive");
+			thread.start();
+		}		
 	}
 }

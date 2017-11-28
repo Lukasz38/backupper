@@ -12,8 +12,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-import javax.xml.crypto.URIReferenceException;
-
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentHelper;
@@ -22,11 +20,15 @@ import org.dom4j.Node;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.opa.FileDTO;
 
 public class XMLStructure implements XMLStructureCreator {
 
+	private static final Logger log = LoggerFactory.getLogger(XMLStructure.class);
+	
 	private static final String XML_FOLDER_NAME = "data";
 	private static final String XML_FILE_NAME = "document.xml";
 	
@@ -45,12 +47,14 @@ public class XMLStructure implements XMLStructureCreator {
 	
 	private XMLStructure()
 	{
-		boolean fileExist = loadFile();
-		if(!fileExist) {
+		boolean fileLoaded = loadFile();
+		if(!fileLoaded) {
+			log.error("Failed to load file: {}", XML_FILE_NAME);
 			throw new RuntimeException();
 		}
-		boolean loaded = loadDocument();
-		if(!loaded) {
+		boolean documentLoaded = loadDocument();
+		if(!documentLoaded) {
+			log.error("Failed to load document from file: {}", XML_FILE_NAME);
 			throw new RuntimeException();
 		}
 	}
@@ -69,13 +73,17 @@ public class XMLStructure implements XMLStructureCreator {
 				File folder = new File(uri);
 				if(!folder.exists()) {
 					folder.mkdir();
+					log.debug("Folder created: {}", folder.getAbsolutePath());
 				}
 				return true;
 			} 
-			else 
-				throw new URIReferenceException("Couldn't find resource.");
-		} catch (URIReferenceException | URISyntaxException e) {
-			e.printStackTrace();
+			else {
+				log.error("Couldn't find resource.");
+				return false;
+			}
+		} catch (URISyntaxException e) {
+			log.error("Exception while creating URI.\n"
+					+ "Exception message: {}", e);
 			return false;
 		}
 	}
@@ -95,20 +103,24 @@ public class XMLStructure implements XMLStructureCreator {
 						document.addElement(ROOT_NODE);
 						document.normalize();
 						save();
+						log.debug("File created: {}", xmlFile.getAbsolutePath());
 					}
 					return true;
 				}
 				else {
-					throw new URIReferenceException("Invalid URI.");
+					log.error("Couldn't find resource: /{}", XML_FOLDER_NAME);
+					return false;
 				}
 			}
-			catch (URIReferenceException | URISyntaxException | IOException e) {
-				e.printStackTrace();
+			catch (URISyntaxException | IOException e) {
+				log.error("Exception while creating URI.\n"
+						+ "Exception message: {}", e);
 				return false;
 			}
 		}
 		else {
-			throw new RuntimeException("Couldn't create folder.");
+			log.warn("Folder not found: {}", XML_FOLDER_NAME);
+			throw new RuntimeException();
 		}
 	}
 	
@@ -118,19 +130,23 @@ public class XMLStructure implements XMLStructureCreator {
 			if(document == null) {
 				SAXReader reader = new SAXReader();
 				if(xmlFile.exists()) {
-						document = reader.read(xmlFile);
-						document.normalize();
-						return true;
+					document = reader.read(xmlFile);
+					//document.normalize();
+					log.debug("Document read.");
+					return true;
 				}
 				else {
+					log.warn("File doesn't exist: {}", xmlFile.getAbsolutePath());
 					return false;
 				}
 			}
 			else {
+				log.debug("Document already loaded.");
 				return true;
 			}
 		} catch (DocumentException e) {
-			e.printStackTrace();
+			log.error("Exception while reading document.\n"
+					+ "Exception message: {}", e);
 			return false;
 		}
 	}
@@ -138,6 +154,9 @@ public class XMLStructure implements XMLStructureCreator {
 	public boolean save()
 	{
 		OutputFormat format = OutputFormat.createPrettyPrint();
+		format.setIndent(false);
+		format.setPadText(false);
+		format.setTrimText(false);
 	    format.setEncoding("utf-8");
 		try {
 			XMLWriter writer = new XMLWriter(new FileOutputStream(xmlFile),format);
@@ -150,7 +169,7 @@ public class XMLStructure implements XMLStructureCreator {
 		}
 	}
 	
-	public List<File> listFilesToArchive()
+	public synchronized List<File> listFilesToArchive()
 	{
 		List<File> files = new ArrayList<>();
 		List<Node> nodes = document.getRootElement().selectNodes(FILE_NODE);
@@ -163,7 +182,7 @@ public class XMLStructure implements XMLStructureCreator {
 		return files;
 	}
 	
-	public List<FileDTO> listArchivedFiles()
+	public synchronized List<FileDTO> listArchivedFiles()
 	{
 		List<FileDTO> files = new ArrayList<>();
 		List<Node> nodes = document.getRootElement().selectNodes(FILE_NODE + "//" + DATE_TIME_NODE);
@@ -178,7 +197,7 @@ public class XMLStructure implements XMLStructureCreator {
 		return files;	
 	}
 	
-	public List<FileDTO> listFiles()
+	public synchronized List<FileDTO> listFiles()
 	{
 		List<FileDTO> files = new ArrayList<>();
 		List<Node> nodes = document.getRootElement().selectNodes(FILE_NODE);
@@ -203,7 +222,7 @@ public class XMLStructure implements XMLStructureCreator {
 	}
 
 	@Override
-	public void addFilesToXmlStructure(List<File> files) throws IllegalArgumentException
+	public synchronized void addFilesToXmlStructure(List<File> files) throws IllegalArgumentException
 	{
 		for(File file : files) {
 			if(file.isDirectory()) {
@@ -216,7 +235,7 @@ public class XMLStructure implements XMLStructureCreator {
 	}
 
 	@Override
-	public Element addFileToXmlStructure(File file) throws IllegalArgumentException
+	public synchronized Element addFileToXmlStructure(File file) throws IllegalArgumentException
 	{
 		if(file.isDirectory()) {
 			throw new IllegalArgumentException("Given File object cannot be a directory.");
@@ -231,7 +250,7 @@ public class XMLStructure implements XMLStructureCreator {
 		return element;
 	}
 	
-	public Optional<Element> fileElementExists(File file) throws IllegalArgumentException
+	public synchronized Optional<Element> fileElementExists(File file) throws IllegalArgumentException
 	{
 		List<Node> nodes = document.getRootElement().selectNodes(FILE_NODE + "//" + LOCAL_PATH_NODE);
 		Iterator<Node> iterator = nodes.iterator();
@@ -245,7 +264,7 @@ public class XMLStructure implements XMLStructureCreator {
 	}
 
 	@Override
-	public void addLocalPathToElement(String path, Element element) throws IllegalArgumentException
+	public synchronized void addLocalPathToElement(String path, Element element) throws IllegalArgumentException
 	{
 		if(!element.getName().equals(FILE_NODE)) {
 			throw new IllegalArgumentException("Given Element object must be a \"" + FILE_NODE + "\" node.");
@@ -256,7 +275,7 @@ public class XMLStructure implements XMLStructureCreator {
 	}
 
 	@Override
-	public void addHashToElement(String hash, Element element) throws IllegalArgumentException
+	public synchronized void addHashToElement(String hash, Element element) throws IllegalArgumentException
 	{
 		if(!element.getName().equals(FILE_NODE)) {
 			throw new IllegalArgumentException("Given Element object must be a \"file\" node.");
@@ -267,7 +286,7 @@ public class XMLStructure implements XMLStructureCreator {
 	}
 
 	@Override
-	public void addBackupDateToElement(LocalDateTime localDateTime, Element element) throws IllegalArgumentException
+	public synchronized void addBackupDateToElement(LocalDateTime localDateTime, Element element) throws IllegalArgumentException
 	{
 		if(!element.getName().equals(FILE_NODE)) {
 			throw new IllegalArgumentException("Given Element object must be a \"file\" node.");
@@ -278,7 +297,7 @@ public class XMLStructure implements XMLStructureCreator {
 	}
 
 	@Override
-	public void addRemotePathToElement(String path, Element element) throws IllegalArgumentException
+	public synchronized void addRemotePathToElement(String path, Element element) throws IllegalArgumentException
 	{
 		if(!element.getName().equals(FILE_NODE)) {
 			throw new IllegalArgumentException("Given Element object must be a \"file\" node.");
@@ -289,7 +308,7 @@ public class XMLStructure implements XMLStructureCreator {
 	}
 
 	@Override
-	public void updateHash(String hash, Element element) throws IllegalArgumentException
+	public synchronized void updateHash(String hash, Element element) throws IllegalArgumentException
 	{
 		if(element.getName().equals(HASH_NODE)) {
 			element.setText(hash);
@@ -311,7 +330,7 @@ public class XMLStructure implements XMLStructureCreator {
 	}
 
 	@Override
-	public void updateBackupDate(LocalDateTime localDateTime, Element element) throws IllegalArgumentException
+	public synchronized void updateBackupDate(LocalDateTime localDateTime, Element element) throws IllegalArgumentException
 	{
 		if(element.getName().equals(DATE_TIME_NODE)) {
 			element.setText(localDateTime.toString());
@@ -343,7 +362,7 @@ public class XMLStructure implements XMLStructureCreator {
 		return document;
 	}
 	
-	public Optional<String> getHash(File file)
+	public synchronized Optional<String> getHash(File file)
 	{
 		String xpath = FILE_NODE + "[localPath='" + file.getAbsolutePath() + "']";
 		List<Node> nodes = document.getRootElement().selectNodes(xpath);
@@ -360,7 +379,7 @@ public class XMLStructure implements XMLStructureCreator {
 		}
 	}
 	
-	public Optional<String> getRemotePath(File file) 
+	public synchronized Optional<String> getRemotePath(File file) 
 	{
 		String xpath = FILE_NODE + "[localPath='" + file.getAbsolutePath() + "']";
 		List<Node> nodes = document.getRootElement().selectNodes(xpath);
@@ -374,7 +393,7 @@ public class XMLStructure implements XMLStructureCreator {
 		}
 	}
 	
-	public Optional<LocalDateTime> getLastUpdateTime(File file)
+	public synchronized Optional<LocalDateTime> getLastUpdateTime(File file)
 	{
 		String xpath = FILE_NODE + "[localPath='" + file.getAbsolutePath() + "']";
 		List<Node> nodes = document.getRootElement().selectNodes(xpath);
@@ -387,56 +406,4 @@ public class XMLStructure implements XMLStructureCreator {
 			return Optional.of(LocalDateTime.parse(dateElement.getText()));
 		}
 	}
-	
-//	@Override
-//	public boolean deleteFolderNode(Node node)
-//	{
-//		// TODO Auto-generated method stub
-//		return false;
-//	}
-//
-//	@Override
-//	public boolean deleteFolderNode(String localPath)
-//	{
-//		// TODO Auto-generated method stub
-//		return false;
-//	}
-//
-//	@Override
-//	public Node addFolderToXmlStructure(File folder) throws IllegalArgumentException
-//	{
-//		return addFileToNode(folder, document.getFirstChild());
-//	}
-//	
-//	@Override
-//	public Node addFileToNode(File file, Node node) throws IllegalArgumentException
-//	{
-//		Element element = document.createElement(FILE_NODE);
-//		element.setAttribute(NAME_ATTRIBUTE, file.getName());
-//		node.appendChild(element);
-//		return element;
-//	}
-//
-//	@Override
-//	public Node addFolderToNode(File folder, Node node) throws IllegalArgumentException
-//	{
-//		Element element = document.createElement(FILE_NODE);
-//		element.setAttribute(NAME_ATTRIBUTE, folder.getName());
-//		node.appendChild(element);
-//		return element;
-//	}
-//
-//	@Override
-//	public void addFilesToNode(List<File> files, Node node)
-//	{
-//		for(File file : files) {
-//			if(file.isDirectory()) {
-//				Node createdNode = addFolderToNode(file, node);
-//				addFilesToNode(Arrays.asList(file.listFiles()), createdNode);
-//			}
-//			else {
-//				addFileToNode(file, node);
-//			}
-//		}
-//	}
 }

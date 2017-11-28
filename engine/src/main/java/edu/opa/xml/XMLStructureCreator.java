@@ -19,11 +19,4 @@ public interface XMLStructureCreator {
 	public void updateBackupDate(LocalDateTime localDateTime, Element element) throws IllegalArgumentException;
 
 	public boolean deleteFileElement(String localPath);
-	
-//	public void addFilesToNode(List<File> files, Node node);
-//	public Node addFileToNode(File file, Node node) throws IllegalArgumentException;
-//	public Node addFolderToXmlStructure(File folder) throws IllegalArgumentException;
-//	public Node addFolderToNode(File folder, Node node) throws IllegalArgumentException;
-//	boolean deleteFolderNode(Node node);
-//	boolean deleteFolderNode(String localPath);
 }

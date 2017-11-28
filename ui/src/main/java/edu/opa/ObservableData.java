@@ -1,5 +1,7 @@
 package edu.opa;
 
+import java.util.List;
+
 import edu.opa.xml.XMLStructure;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -19,8 +21,15 @@ public class ObservableData {
 	{
 		return instance;
 	}
+	
+	public synchronized void update()
+	{
+		List<FileDTO> fileDTOs = XMLStructure.getInstance().listFiles();
+		ObservableData.getInstance().getObservableList().clear();
+		ObservableData.getInstance().getObservableList().addAll(fileDTOs);
+	}
 
-	public ObservableList<FileDTO> getObservableList()
+	public synchronized ObservableList<FileDTO> getObservableList()
 	{
 		return observableList;
 	}
