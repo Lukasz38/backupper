@@ -1,14 +1,12 @@
 package edu.opa;
 
-import java.time.LocalDateTime;
-
 public class FileDTO {
 
 	private String localPath;
-	private LocalDateTime backupDate;
+	private String backupDate;
 	private String remotePath;
 	
-	public FileDTO(String localPath, LocalDateTime backupDate, 
+	public FileDTO(String localPath, String backupDate, 
 			String remotePath) {
 		this.localPath = localPath;
 		this.backupDate = backupDate;
@@ -19,7 +17,7 @@ public class FileDTO {
 	{
 		return localPath;
 	}
-	public LocalDateTime getBackupDate()
+	public String getBackupDate()
 	{
 		return backupDate;
 	}

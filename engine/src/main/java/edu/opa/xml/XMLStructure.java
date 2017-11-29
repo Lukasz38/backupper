@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -47,16 +48,19 @@ public class XMLStructure implements XMLStructureCreator {
 	
 	private XMLStructure()
 	{
-		boolean fileLoaded = loadFile();
-		if(!fileLoaded) {
-			log.error("Failed to load file: {}", XML_FILE_NAME);
-			throw new RuntimeException();
-		}
+		log.debug("XMLStructure constructor started.");
+//		boolean fileLoaded = loadFile();
+//		if(!fileLoaded) {
+//			log.error("Failed to load file: {}", XML_FILE_NAME);
+//			throw new RuntimeException();
+//		}
+//		log.debug("File loaded");
 		boolean documentLoaded = loadDocument();
 		if(!documentLoaded) {
 			log.error("Failed to load document from file: {}", XML_FILE_NAME);
 			throw new RuntimeException();
 		}
+		log.debug("XMLStructure is up.");
 	}
 	
 	public static XMLStructure getInstance() 
@@ -66,11 +70,16 @@ public class XMLStructure implements XMLStructureCreator {
 	
 	private boolean createFolder()
 	{
+		log.debug("creating folder");
 		try {
-			URL url = this.getClass().getResource("/");
+			URL url = this.getClass().getClassLoader().getResource("data");
+			log.debug("Got url: {}", url);
 			if(url != null) {
-				URI uri = new URI(url.toString() + XML_FOLDER_NAME);
+				log.debug("Url not null");
+				URI uri = url.toURI();
+				log.debug("Got uri: {}", uri);
 				File folder = new File(uri);
+				log.debug("folder uri: {}", uri);
 				if(!folder.exists()) {
 					folder.mkdir();
 					log.debug("Folder created: {}", folder.getAbsolutePath());
@@ -90,13 +99,16 @@ public class XMLStructure implements XMLStructureCreator {
 	
 	private boolean loadFile()
 	{
+		log.debug("loading file");
 		boolean folderCreated = createFolder();
+		log.debug("Folder created: {}", folderCreated);
 		if(folderCreated) {
 			try {
 				URL url = this.getClass().getResource("/" + XML_FOLDER_NAME);
 				if(url != null) {
 					URI uri = new URI(url + "/" + XML_FILE_NAME);
 					xmlFile = new File(uri);
+					log.debug("xmlFile assigned");
 					if(!xmlFile.exists()) {
 						xmlFile.createNewFile();
 						document = DocumentHelper.createDocument();
@@ -104,6 +116,9 @@ public class XMLStructure implements XMLStructureCreator {
 						document.normalize();
 						save();
 						log.debug("File created: {}", xmlFile.getAbsolutePath());
+					}
+					else {
+						log.debug("File loaded.");
 					}
 					return true;
 				}
@@ -126,19 +141,25 @@ public class XMLStructure implements XMLStructureCreator {
 	
 	private boolean loadDocument()
 	{
+		log.debug("loading document");
 		try {
 			if(document == null) {
 				SAXReader reader = new SAXReader();
-				if(xmlFile.exists()) {
-					document = reader.read(xmlFile);
-					//document.normalize();
-					log.debug("Document read.");
-					return true;
-				}
-				else {
-					log.warn("File doesn't exist: {}", xmlFile.getAbsolutePath());
-					return false;
-				}
+				document = reader.read(this.getClass().getResourceAsStream("/data/document.xml"));
+				document.normalize();
+				log.debug("document loaded: {}", document.asXML());
+				return true;
+//				if(xmlFile.exists()) {
+//					
+//					//document = reader.read(xmlFile);
+//					//document.normalize();
+//					log.debug("Document read.");
+//					return true;
+//				}
+//				else {
+//					log.warn("File doesn't exist: {}", xmlFile.getAbsolutePath());
+//					return false;
+//				}
 			}
 			else {
 				log.debug("Document already loaded.");
@@ -153,18 +174,20 @@ public class XMLStructure implements XMLStructureCreator {
 	
 	public boolean save()
 	{
+		log.debug("saving");
 		OutputFormat format = OutputFormat.createPrettyPrint();
 		format.setIndent(false);
 		format.setPadText(false);
 		format.setTrimText(false);
 	    format.setEncoding("utf-8");
 		try {
-			XMLWriter writer = new XMLWriter(new FileOutputStream(xmlFile),format);
+			String path = this.getClass().getResource("/data/document.xml").getPath();
+			log.debug("Path: {}", path);
+			XMLWriter writer = new XMLWriter(new FileOutputStream(path),format);
 			writer.write(document);
 			writer.close();
 			return true;
 		} catch (IOException e) {
-			e.printStackTrace();
 			return false;
 		}
 	}
@@ -175,9 +198,12 @@ public class XMLStructure implements XMLStructureCreator {
 		List<Node> nodes = document.getRootElement().selectNodes(FILE_NODE);
 		for(Node node : nodes) {
 			Element element = (Element) node;
-			String path = element.element(LOCAL_PATH_NODE).getText();
-			File file = new File(path);
-			files.add(file);
+			Element localPathElement = element.element(LOCAL_PATH_NODE);
+			if(localPathElement != null) {
+				String path = localPathElement.getText();
+				File file = new File(path);
+				files.add(file);
+			}
 		}
 		return files;
 	}
@@ -191,7 +217,8 @@ public class XMLStructure implements XMLStructureCreator {
 			String localPath = element.element(LOCAL_PATH_NODE).getText();
 			LocalDateTime backupDate = LocalDateTime.parse(element.element(DATE_TIME_NODE).getText());
 			String remotePath = element.element(REMOTE_PATH_NODE).getText();
-			FileDTO fileDTO = new FileDTO(localPath, backupDate, remotePath);
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+			FileDTO fileDTO = new FileDTO(localPath, backupDate.format(formatter), remotePath);
 			files.add(fileDTO);
 		}
 		return files;	
@@ -203,7 +230,11 @@ public class XMLStructure implements XMLStructureCreator {
 		List<Node> nodes = document.getRootElement().selectNodes(FILE_NODE);
 		for(Node node : nodes) {
 			Element element = (Element) node;
-			String localPath = element.element(LOCAL_PATH_NODE).getText();
+			Element localPathElement = element.element(LOCAL_PATH_NODE);
+			String localPath = "";
+			if(localPathElement != null) {
+				localPath = localPathElement.getText();
+			}
 			Element dateTimeElement = element.element(DATE_TIME_NODE);
 			LocalDateTime backupDate = null;
 			if(dateTimeElement != null) {
@@ -215,7 +246,12 @@ public class XMLStructure implements XMLStructureCreator {
 			if(remotePathElement != null) {
 				remotePath = remotePathElement.getText();
 			}
-			FileDTO fileDTO = new FileDTO(localPath, backupDate, remotePath);
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+			String stringDate = "";
+			if(backupDate != null) {
+				stringDate = backupDate.format(formatter);
+			}
+			FileDTO fileDTO = new FileDTO(localPath, stringDate, remotePath);
 			files.add(fileDTO);
 		}
 		return files;	
@@ -261,6 +297,20 @@ public class XMLStructure implements XMLStructureCreator {
 			}
 		}
 		return Optional.empty();
+	}
+	
+	public synchronized boolean existsElementWithName(File file) 
+	{
+		List<Node> nodes = document.getRootElement().selectNodes(FILE_NODE + "[@"
+				+ NAME_ATTRIBUTE + "='" + file.getName() + "']");
+		if(nodes.size() == 1) {
+			log.debug("File already added to archive schedule.");
+			return true;
+		}
+		else {
+			return false;
+		}
+
 	}
 
 	@Override
@@ -405,5 +455,25 @@ public class XMLStructure implements XMLStructureCreator {
 		else {
 			return Optional.of(LocalDateTime.parse(dateElement.getText()));
 		}
+	}
+	
+	public synchronized boolean deleteLocalPathOrNode(String localPath)
+	{
+		log.debug("deleting node...");
+		String xpath = FILE_NODE + "[localPath='" + localPath + "']";
+		List<Node> nodes = document.getRootElement().selectNodes(xpath);
+		if(!nodes.isEmpty()) {
+			Element fileElement = (Element) nodes.get(0);
+			Element remotePathElement= fileElement.element(REMOTE_PATH_NODE);
+			if(remotePathElement == null) {
+				document.getRootElement().remove(fileElement);
+			}
+			else {
+				Element localPathElement = fileElement.element(LOCAL_PATH_NODE);
+				fileElement.remove(localPathElement);
+			}
+			return true;
+		}
+		return false;
 	}
 }

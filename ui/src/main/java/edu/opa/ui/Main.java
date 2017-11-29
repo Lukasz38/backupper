@@ -1,5 +1,10 @@
 package edu.opa.ui;
 	
+import java.io.InputStream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.stage.Stage;
@@ -8,13 +13,21 @@ import javafx.scene.layout.BorderPane;
 
 public class Main extends Application {
 	
+	private static final Logger log = LoggerFactory.getLogger(Main.class);
+	
 	@Override
 	public void start(Stage primaryStage) {
 	
 		try {
 			FXMLLoader loader = new FXMLLoader();
-			loader.setLocation(this.getClass().getResource("/fxml/Main.fxml"));
-			BorderPane borderPane = loader.load();
+			InputStream is = this.getClass().getResourceAsStream("/fxml/Main.fxml");
+			log.info("Is available: {}", is.available());
+			//URL url = this.getClass().getResource("/fxml/Main.fxml");
+			//log.info("URL: {}", url);
+			//loader.setLocation(url);
+			log.info("Main.fxml loaded");
+			BorderPane borderPane = loader.load(is);
+			log.info("Border pane loaded");
 			Scene scene = new Scene(borderPane);
 			primaryStage.setScene(scene);
 			primaryStage.setTitle("Awesome backupper");
@@ -22,7 +35,7 @@ public class Main extends Application {
 			primaryStage.setMinWidth(300);
 			primaryStage.show();
 		} catch(Exception e) {
-			e.printStackTrace();
+			log.info("Exception in main class: {}", e);
 		}
 	}
 	

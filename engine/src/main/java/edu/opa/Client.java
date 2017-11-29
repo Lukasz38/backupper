@@ -2,14 +2,15 @@ package edu.opa;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.io.OutputStream;
 import java.util.Properties;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,22 +34,25 @@ public class Client {
 	
 	private Client()
 	{
+		log.debug("Constructor started");
 		ftpClient = new FTPClient();
 		loadConfig();
+		log.debug("Client is up.");
 	}
 	
 	private void loadConfig()
 	{
+		log.debug("Loading config");
 		Properties prop = new Properties();
 
-		URL url = this.getClass().getResource("/" + CONFIG_FILE_NAME);
-		if(url == null) {
-			log.error("Configuration file not found: " + CONFIG_FILE_NAME);
-			throw new RuntimeException();
-		}
-		try(InputStream input = new FileInputStream(
-				new File(url.toURI()))) {
+//		URL url = this.getClass().getResource("/" + CONFIG_FILE_NAME);
+//		if(url == null) {
+//			log.error("Configuration file not found: " + CONFIG_FILE_NAME);
+//			throw new RuntimeException();
+//		}
+		try(InputStream input = this.getClass().getResourceAsStream("/" + CONFIG_FILE_NAME)) {
 
+			log.debug("Got stream");
 			prop.load(input);
 
 			server = prop.getProperty("server.ip");
@@ -56,7 +60,7 @@ public class Client {
 			user = prop.getProperty("user");
 			password = prop.getProperty("password");
 			
-		} catch (IOException | URISyntaxException e) {
+		} catch (IOException e) {
 			log.error("Exception while loading configuration from config.properties.\n"
 					+ "Exception message: {}", e);
 			throw new RuntimeException();
@@ -121,5 +125,40 @@ public class Client {
 					+ "Exception message: {}", e);
 			throw new IOException("An error occured while archiving a file.");
 		}
+	}
+	
+	public boolean restoreFiles(String remotePath, String localPath) throws IOException
+	{	
+		File newLocalFile = new File(localPath);
+		try(OutputStream outputStream = new FileOutputStream(newLocalFile)) {
+			if(fileExists(remotePath)) {
+				log.debug("File exists on a remote server");
+				boolean retrieved = ftpClient.retrieveFile(remotePath, outputStream);
+				if(retrieved) {
+					log.debug("Retrieved file");
+					return true;
+				} else {
+					return false;
+				}
+			}
+			else {
+				return false;
+			}
+		} catch (IOException e) {
+			log.error("Exception thrown while retrieving file.\n"
+					+ "Exception message: {}", e);
+			throw new IOException("An error occured while restoring a file.");
+		}
+	}
+	
+	private boolean fileExists(String remotePath) throws IOException
+	{
+		FTPFile[] ftpFiles = ftpClient.listFiles();
+		for(FTPFile file : ftpFiles) {
+			if(file.getName().equals(remotePath)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
